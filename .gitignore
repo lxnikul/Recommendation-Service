@@ -1,0 +1,31 @@
+# Source data — the case datasets are ~2.2 GB and exceed GitHub's 100 MB limit.
+# Build the committed subset with: python make_sample.py
+*.csv
+
+# ...except the sampled fixture, which is small and makes the repo runnable.
+!sample_data/*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Hugging Face model cache, if ever pointed at the repo
+.cache/
+models/
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

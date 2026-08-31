@@ -1,0 +1,9 @@
+pandas
+numpy
+scikit-learn
+transformers
+
+# CPU build is sufficient — nothing in this project moves tensors to a GPU.
+# Install with:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
