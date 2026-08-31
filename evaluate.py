@@ -29,6 +29,10 @@ MIN_HELD_OUT = 10
 # large k answers "does the right answer appear anywhere useful".
 K_VALUES = (5, 10, 20, 50)
 
+# Candidate orderings to average over. Standard error falls as 1/sqrt(n), so
+# 30 is already tight enough to compare configurations and costs a few seconds.
+DEFAULT_REPEATS = 30
+
 
 def load():
     """Return (participants, test tenders).
@@ -86,14 +90,22 @@ def recall_at_k(ranked, relevant, k):
     return len(set(ranked[:k]) & relevant) / len(relevant)
 
 
-def evaluate(rank_fn, verbose=True):
+def evaluate(rank_fn, repeats=DEFAULT_REPEATS, verbose=True, seed=0):
     """Score a ranking function across all eligible suppliers.
 
     rank_fn(supplier_id, candidates) must return tender ids ordered best-first.
     `candidates` is the full test frame; the ranker decides what to do with it.
 
-    Returns {"precision@k": mean, "recall@k": mean, ...} and prints a table
-    with the spread, because a mean over 30 suppliers hides more than it shows.
+    Structured scores take few distinct values, so hundreds of candidates can
+    tie at the top and the ten that get returned depend on how pandas' unstable
+    sort happened to partition the rows. That moves precision@10 by up to nine
+    points between runs of identical code.
+
+    So each repeat shuffles the candidate order and the results are averaged,
+    which removes the dependence on any one arbitrary ordering. The reported
+    +/- is the standard error of that averaging — it says how reproducible the
+    number is, NOT how well the system is characterised. Spread across
+    suppliers is far larger and is what the min/max columns show.
     """
     participants, test = load()
     truth = build_ground_truth(participants, test)
@@ -104,30 +116,56 @@ def evaluate(rank_fn, verbose=True):
             "the tenders these suppliers actually bid on — re-run make_sample.py."
         )
 
-    # Per-supplier scores, kept individually so spread can be reported.
-    scores = {f"precision@{k}": [] for k in K_VALUES}
-    scores.update({f"recall@{k}": [] for k in K_VALUES})
+    metrics = ([f"precision@{k}" for k in K_VALUES]
+               + [f"recall@{k}" for k in K_VALUES])
 
-    for supplier, relevant in truth.items():
-        ranked = list(rank_fn(supplier, test))
-        for k in K_VALUES:
-            scores[f"precision@{k}"].append(precision_at_k(ranked, relevant, k))
-            scores[f"recall@{k}"].append(recall_at_k(ranked, relevant, k))
+    # per_supplier[metric][supplier] -> one score per repeat
+    per_supplier = {m: {s: [] for s in truth} for m in metrics}
+    # per_run[metric] -> the across-supplier mean for each repeat
+    per_run = {m: [] for m in metrics}
+
+    for r in range(repeats):
+        candidates = test if repeats == 1 else test.sample(
+            frac=1.0, random_state=seed + r)
+
+        run = {m: [] for m in metrics}
+        for supplier, relevant in truth.items():
+            ranked = list(rank_fn(supplier, candidates))
+            for k in K_VALUES:
+                p = precision_at_k(ranked, relevant, k)
+                rc = recall_at_k(ranked, relevant, k)
+                per_supplier[f"precision@{k}"][supplier].append(p)
+                per_supplier[f"recall@{k}"][supplier].append(rc)
+                run[f"precision@{k}"].append(p)
+                run[f"recall@{k}"].append(rc)
+
+        for m in metrics:
+            per_run[m].append(statistics.mean(run[m]))
+
+    # Each supplier's score is averaged over repeats first, so the spread shown
+    # across suppliers is real variation between them rather than tie noise.
+    supplier_means = {m: [statistics.mean(v) for v in per_supplier[m].values()]
+                      for m in metrics}
 
     if verbose:
         held = [len(v) for v in truth.values()]
         print(f"suppliers scored : {len(truth)}")
         print(f"held-out bids    : {min(held)}–{max(held)} "
               f"(median {int(statistics.median(held))})")
-        print(f"candidate pool   : {len(test):,} tenders\n")
-        print(f"{'metric':<14}{'mean':>8}{'median':>9}{'min':>8}{'max':>8}")
-        print("-" * 47)
-        for name, values in scores.items():
-            print(f"{name:<14}{statistics.mean(values):>8.1%}"
+        print(f"candidate pool   : {len(test):,} tenders")
+        print(f"repeats          : {repeats}\n")
+        print(f"{'metric':<14}{'mean':>8}{'±se':>7}{'median':>9}"
+              f"{'min':>8}{'max':>8}")
+        print("-" * 54)
+        for m in metrics:
+            values = supplier_means[m]
+            se = (statistics.stdev(per_run[m]) / repeats ** 0.5
+                  if repeats > 1 else 0.0)
+            print(f"{m:<14}{statistics.mean(values):>8.1%}{se:>7.1%}"
                   f"{statistics.median(values):>9.1%}"
                   f"{min(values):>8.1%}{max(values):>8.1%}")
 
-    return {name: statistics.mean(values) for name, values in scores.items()}
+    return {m: statistics.mean(supplier_means[m]) for m in metrics}
 
 
 def random_ranker(seed=42):
@@ -147,5 +185,12 @@ def random_ranker(seed=42):
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Score the random baseline.")
+    parser.add_argument("--repeats", type=int, default=DEFAULT_REPEATS,
+                        help="candidate orderings to average over")
+    args = parser.parse_args()
+
     print("Baseline: random ranking\n")
-    evaluate(random_ranker())
+    evaluate(random_ranker(), repeats=args.repeats)
