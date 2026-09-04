@@ -14,12 +14,16 @@ Run it directly to see the random baseline:
     python evaluate.py
 """
 
+import os
 import random
 import statistics
 
 import pandas as pd
 
-SAMPLE_DIR = "sample_data"
+# Resolved against this file, not the working directory, so the scripts run
+# from anywhere rather than only from the repository root.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SAMPLE_DIR = os.path.join(BASE_DIR, "sample_data")
 
 # A supplier needs enough held-out bids for precision@10 to mean anything.
 # With 6 relevant items, one lucky hit moves the score by 17 points.

@@ -5,6 +5,12 @@
 # ...except the sampled fixture, which is small and makes the repo runnable.
 !sample_data/*.csv
 
+# Embedding caches — derived output, ~47 MB, rebuilt by: python embed.py
+# Git stores binaries whole rather than diffing them, so every regeneration
+# would add another full copy to history permanently.
+cache/
+*.npz
+
 # Python
 __pycache__/
 *.py[cod]

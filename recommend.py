@@ -9,9 +9,14 @@ Run directly to score it:
     python recommend.py
 """
 
+import os
+
 import pandas as pd
 
-SAMPLE_DIR = "sample_data"
+# Resolved against this file, not the working directory, so the scripts run
+# from anywhere rather than only from the repository root.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SAMPLE_DIR = os.path.join(BASE_DIR, "sample_data")
 
 # Weights for the scored signals. They sum to 1 so the total reads as 0..1.
 W_CATEGORY = 0.6
