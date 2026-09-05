@@ -19,9 +19,6 @@ never labels, so nothing leaks. What remains is a pool of novel candidates
 containing novel correct answers, and ordinary precision@10 applies — directly
 comparable to the full-pool figure.
 
-It is also a real deployment question. A supplier already tracking their annual
-re-tenders wants to know what the system finds beyond them.
-
     python analyse_novel.py
     python analyse_novel.py --threshold 0.95 --semantic 0.3
 """
@@ -40,7 +37,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAMPLE_DIR = os.path.join(BASE_DIR, "sample_data")
 
 THRESHOLD = 0.98
-SEMANTIC_WEIGHT = 0.3
+SEMANTIC_WEIGHT = 0.1
 REPEATS = 10
 
 

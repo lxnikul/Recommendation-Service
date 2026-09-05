@@ -36,7 +36,7 @@ import supplier_profile
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAMPLE_DIR = os.path.join(BASE_DIR, "sample_data")
 
-SEMANTIC_WEIGHT = 0.3
+SEMANTIC_WEIGHT = 0.1
 REPEATS = 10          # enough for per-supplier comparison; 30 is for headlines
 DUPLICATE_THRESHOLD = 0.98
 

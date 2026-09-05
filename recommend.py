@@ -26,7 +26,7 @@ SAMPLE_DIR = os.path.join(BASE_DIR, "sample_data")
 # it — the comparison is then clean.
 W_CATEGORY = 0.6
 W_REGION = 0.4
-W_SEMANTIC = 0.0
+W_SEMANTIC = 0.1
 
 # Region scoring.
 S_SAME_REGION = 1.0
